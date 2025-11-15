@@ -2,13 +2,17 @@
 This script generates images using Stable Diffusion with a Hugging Face
 inference endpoint. Need to provide a HUGGINGFACE_API_KEY environment variable
 and also a HUGGINGFACE_ENDPOINT environment variable.
+Required: NEW_PERSON_OUTPUT_IMAGE_PATH environment variable (full path to output image file).
+Optional: NEW_PERSON_PROMPT environment variable (defaults to "A crowd of people with three happy people and one sad person ").
 """
 
 import os
 import base64
 import requests
 from pathlib import Path
-from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def generate_image(prompt: str, api_key: str, endpoint: str) -> bytes:
@@ -47,21 +51,15 @@ def main():
     if not api_key or not endpoint:
         raise ValueError("HUGGINGFACE_API_KEY and HUGGINGFACE_ENDPOINT must be set")
     
-    output_dir = Path(__file__).parent / "output_HF_images"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_image_path = os.getenv("NEW_PERSON_OUTPUT_IMAGE_PATH")
+    if not output_image_path:
+        raise ValueError("NEW_PERSON_OUTPUT_IMAGE_PATH must be set")
     
-    prompts = [
-        "A street sign that says 'STOP' in bold letters",
-        "A billboard displaying 'Welcome to the City' with text",
-        "A book cover with title 'Machine Learning' written on it",
-        "A blackboard with '2 + 2 = 4' written in chalk",
-        "A menu board showing 'Coffee $3.50' in large text",
-        "A license plate with 'ABC123' on it",
-        "A neon sign glowing 'OPEN' in red letters",
-        "A newspaper headline 'BREAKING NEWS' in bold",
-        "A price tag showing '$99.99' clearly visible",
-        "A street name sign 'MAIN STREET' on a pole"
-    ]
+    filepath = Path(output_image_path)
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    
+    prompt = os.getenv("NEW_PERSON_PROMPT", "A crowd of people with three happy people and one sad person ")
+    prompts = [prompt]
     
     print(f"Generating {len(prompts)} images...")
     
@@ -70,10 +68,6 @@ def main():
         try:
             image_bytes = generate_image(prompt, api_key, endpoint)
             
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{timestamp}_{i}.png"
-            filepath = output_dir / filename
-            
             with open(filepath, 'wb') as f:
                 f.write(image_bytes)
             
@@ -81,8 +75,9 @@ def main():
         except Exception as e:
             print(f"  Error: {e}")
     
-    print(f"\nDone! Images saved to: {output_dir}")
+    print(f"\nDone! Image saved to: {filepath}")
 
 
 if __name__ == "__main__":
     main()
+ 
